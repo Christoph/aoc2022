@@ -1,7 +1,11 @@
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+
+fn main() {
+    let file = File::open("input.txt").expect("Couldnt read file");
+    let buf_data = BufReader::new(file);
+    println!("{}", day1_1(buf_data));
+}
 
 pub fn day1_1(buf_data: BufReader<File>) -> i32 {
     let mut max_value: i32 = 0;
@@ -18,7 +22,7 @@ pub fn day1_1(buf_data: BufReader<File>) -> i32 {
                     max_value = current_value;
                 }
             }
-            Err(err) => {
+            Err(_) => {
                 current_value = 0;
             }
         }
