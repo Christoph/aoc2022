@@ -15,7 +15,8 @@ fn main() {
             hsf.intersection(&hss)
                 .copied()
                 .map(|v| letters.clone().position(|f| f == v).unwrap() + 1)
-                .sum::<usize>()
+                .next()
+                .expect("There should be a common element")
 
             // intersection.collect::<Vec<_>>()
         })
