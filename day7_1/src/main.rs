@@ -9,33 +9,22 @@ use nom::{bytes::complete::take_while1, combinator::map, IResult};
 struct Item {
     path: String,
     size: u64,
-    children: Box<Vec<Item>>,
+    children: Vec<Item>,
 }
 
 impl Item {
-    fn get_folder(&self, path: String) -> &mut Item {
-        self.directories()
-            .find_map(|d| {
-                if d.path == path {
-                    return Some(d);
-                }
-                None
-            })
-            // .as_deref_mut()
-            .unwrap()
-    }
-
     fn size(&self) -> u64 {
         self.size + self.children.iter().map(|child| child.size()).sum::<u64>()
     }
 
-    fn directories(&self) -> Box<dyn Iterator<Item = &mut Item> + '_> {
-        let a = self
-            .children
-            .iter_mut()
-            .filter(|child| !child.children.is_empty())
-            .flat_map(|child| child.directories());
-        return Box::new(a);
+    fn directories(&self) -> Box<dyn Iterator<Item = &Item> + '_> {
+        let a = std::iter::once(self).chain(
+            self.children
+                .iter()
+                .filter(|child| !child.children.is_empty())
+                .flat_map(|child| child.directories()),
+        );
+        Box::new(a)
     }
 }
 
@@ -105,41 +94,58 @@ fn main() {
         .lines()
         .map(|l| all_consuming(parse_input_line)(l).finish().unwrap().1);
 
-    let mut fs = Box::new(vec![Item {
+    let mut fs = vec![Item {
         path: "/".into(),
         size: 0,
-        children: Box::default(),
-    }]);
-    let mut active_path = fs.first_mut().unwrap();
+        children: Vec::default(),
+    }];
 
     for d in data {
-        println!("{d:?}");
         match d {
             Line::Command(command) => match command {
                 Command::Ls(_) => {}
                 Command::Cd(path) => match path.0.as_str() {
-                    "/" => {
-                        active_path = fs.first_mut().unwrap();
-                    } // We start there and cannot navigate back
-                    ".." => {}
-                    _ => active_path = fs.first().unwrap().get_folder(path.0),
+                    "/" => {}
+                    ".." => {
+                        let dir = fs.pop().unwrap();
+                        fs.last_mut().unwrap().children.push(dir);
+                    }
+                    _ => {
+                        let item = Item {
+                            path: path.0,
+                            size: 0,
+                            children: Vec::default(),
+                        };
+                        fs.push(item)
+                    }
                 },
             },
             Line::Entry(entry) => match entry {
-                Entry::Dir(path) => active_path.children.push(Item {
-                    path,
-                    size: 0,
-                    children: Box::default(),
-                }),
-                Entry::File(size, path) => active_path.children.push(Item {
-                    path,
-                    size,
-                    children: Box::default(),
-                }),
+                Entry::Dir(_) => {}
+                Entry::File(size, path) => {
+                    let item = Item {
+                        path,
+                        size,
+                        children: Vec::default(),
+                    };
+                    fs.last_mut().unwrap().children.push(item);
+                }
             },
         }
     }
 
-    let root = fs.pop().unwrap();
-    dbg!(&root);
+    let mut root = fs.pop().unwrap();
+    while let Some(mut next) = fs.pop() {
+        next.children.push(root);
+        root = next;
+    }
+    // dbg!(&root);
+
+    let result: u64 = root
+        .directories()
+        .map(|d| d.size())
+        .filter(|&size| size <= 100000)
+        .sum();
+
+    println!("Result: {result}")
 }
