@@ -147,5 +147,20 @@ fn main() {
         .filter(|&size| size <= 100000)
         .sum();
 
-    println!("Result: {result}")
+    println!("Result day 1: {result}");
+
+    let total_space = 70000000_u64;
+    let used_space = root.size();
+    let free_space = total_space.checked_sub(dbg!(used_space)).unwrap();
+    let needed_free_space = 30000000_u64;
+    let minimum_space_to_free = needed_free_space.checked_sub(free_space).unwrap();
+
+    let result_day2 = root
+        .directories()
+        .map(|d| d.size())
+        .filter(|&size| size >= minimum_space_to_free)
+        .min()
+        .unwrap();
+
+    println!("Result day 2: {result_day2}");
 }
