@@ -1,7 +1,9 @@
+use std::collections::HashSet;
+
 use itertools::Itertools;
 use nom::bytes::complete::tag;
 use nom::character::complete::{alpha1, digit1};
-use nom::combinator::{all_consuming, map};
+use nom::combinator::map;
 use nom::sequence::separated_pair;
 use nom::IResult;
 
@@ -34,7 +36,7 @@ impl Movement {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 struct Position {
     x: i32,
     y: i32,
@@ -42,30 +44,51 @@ struct Position {
 
 impl Position {
     fn follow(&self, other: Position) -> Position {
-        let x_distance = self.x - other.x;
-        let y_distance = self.y - other.y;
+        let x_distance = other.x - self.x;
+        let x_distance_abs = x_distance.unsigned_abs();
+        let mut x_distance_norm = 0;
+        let y_distance = other.y - self.y;
+        let y_distance_abs = y_distance.unsigned_abs();
+        let mut y_distance_norm = 0;
 
-        if x_distance.abs() > 2 || y_distance.abs() > 2 {
-            panic!("DIstance is too big")
+        println!("{self:?}|{other:?}");
+        if x_distance_abs + y_distance_abs > 3 {
+            panic!("Distance is too big - check loop")
         }
 
-        if x_distance.unsigned_abs() > 1 && y_distance.unsigned_abs() <= 1 {
+        // Normalize distances
+        if x_distance >= 1 {
+            x_distance_norm = x_distance - 1;
+        } else if x_distance <= -1 {
+            x_distance_norm = x_distance + 1;
+        } else {
+            x_distance_norm = x_distance;
+        }
+        if y_distance >= 1 {
+            y_distance_norm = y_distance - 1;
+        } else if y_distance <= -1 {
+            y_distance_norm = y_distance + 1;
+        } else {
+            y_distance_norm = y_distance;
+        }
+
+        if x_distance_abs == 2 && y_distance_abs == 0 {
             // x movement
             Position {
-                x: other.x + x_distance - 1,
+                x: self.x + x_distance_norm,
                 y: self.y,
             }
-        } else if x_distance.unsigned_abs() <= 1 && y_distance.unsigned_abs() > 1 {
-            // y movement position
+        } else if x_distance_abs == 0 && y_distance_abs == 2 {
+            // y movement
             Position {
                 x: self.x,
-                y: other.y + y_distance - 1,
+                y: self.y + y_distance_norm,
             }
-        } else if x_distance > 1 && y_distance > 1 {
+        } else if x_distance_abs + y_distance_abs == 3 {
             // dialognal movement
             Position {
-                x: other.x + x_distance - 1,
-                y: other.y + y_distance - 1,
+                x: self.x + x_distance_norm,
+                y: self.y + y_distance_norm,
             }
         } else {
             // no movement
@@ -83,13 +106,12 @@ struct Rope {
 }
 
 impl Rope {
-    fn resolve_movement(&mut self, mov: Movement) {
-        println!("{self:?}");
+    fn resolve_movement(&mut self, mov: Movement, positions: &mut HashSet<Position>) {
         let mut updated = self.elements.clone();
         for _ in 0..mov.distance {
-            for ((p_index, prev), (_, next)) in self.elements.iter().enumerate().tuple_windows() {
-                // Head
+            for ((p_index, _), (n_index, _)) in self.elements.iter().enumerate().tuple_windows() {
                 if p_index == 0 {
+                    // Head
                     match mov.direction {
                         Directions::Right => updated.get_mut(p_index).unwrap().x += 1,
                         Directions::Left => updated.get_mut(p_index).unwrap().x -= 1,
@@ -97,12 +119,16 @@ impl Rope {
                         Directions::Down => updated.get_mut(p_index).unwrap().y -= 1,
                     }
                 }
-
                 // Tail
+                let new_position = updated[n_index].follow(*updated.get(p_index).unwrap());
+                // let b = *updated.get(p_index).unwrap();
+                // println!("{b:?} -> {mov:?} = {a:?}");
+                positions.insert(new_position);
+                updated[n_index] = new_position;
             }
         }
+        println!("{updated:?}");
         self.elements = updated;
-        println!("{self:?}")
     }
 }
 
@@ -116,16 +142,19 @@ fn parse_line(line: &str) -> IResult<&str, Movement> {
 fn main() {
     let data: Vec<_> = include_str!("input.txt")
         .lines()
-        .map(|line| all_consuming(parse_line)(line).unwrap().1)
+        .map(|line| parse_line(line).unwrap().1)
         .collect();
+    let mut positions = HashSet::new();
 
     let mut rope = Rope {
         elements: vec![Position { x: 0, y: 0 }, Position { x: 0, y: 0 }],
     };
 
     for movement in data {
-        rope.resolve_movement(movement);
+        rope.resolve_movement(movement, &mut positions);
     }
 
-    println!("{rope:?}");
+    let result = positions.len();
+
+    println!("{rope:?} => {result}");
 }
