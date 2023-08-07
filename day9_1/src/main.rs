@@ -46,10 +46,10 @@ impl Position {
     fn follow(&self, other: Position) -> Position {
         let x_distance = other.x - self.x;
         let x_distance_abs = x_distance.unsigned_abs();
-        let mut x_distance_norm = 0;
+        let x_distance_norm;
         let y_distance = other.y - self.y;
         let y_distance_abs = y_distance.unsigned_abs();
-        let mut y_distance_norm = 0;
+        let y_distance_norm;
 
         println!("{self:?}|{other:?}");
         if x_distance_abs + y_distance_abs > 3 {
@@ -64,6 +64,7 @@ impl Position {
         } else {
             x_distance_norm = x_distance;
         }
+
         if y_distance >= 1 {
             y_distance_norm = y_distance - 1;
         } else if y_distance <= -1 {
@@ -85,10 +86,28 @@ impl Position {
                 y: self.y + y_distance_norm,
             }
         } else if x_distance_abs + y_distance_abs == 3 {
+            let mut y_distance_diag = y_distance_norm;
+            let mut x_distance_diag = x_distance_norm;
+
+            if x_distance_abs > 1 {
+                if y_distance.is_negative() {
+                    y_distance_diag -= 1;
+                } else {
+                    y_distance_diag += 1;
+                }
+            }
+
+            if x_distance_abs > 1 {
+                if x_distance.is_negative() {
+                    x_distance_diag -= 1;
+                } else {
+                    x_distance_diag += 1;
+                }
+            }
             // dialognal movement
             Position {
-                x: self.x + x_distance_norm,
-                y: self.y + y_distance_norm,
+                x: self.x + x_distance_diag,
+                y: self.y + y_distance_diag,
             }
         } else {
             // no movement
@@ -121,8 +140,8 @@ impl Rope {
                 }
                 // Tail
                 let new_position = updated[n_index].follow(*updated.get(p_index).unwrap());
-                // let b = *updated.get(p_index).unwrap();
-                // println!("{b:?} -> {mov:?} = {a:?}");
+                let b = *updated.get(p_index).unwrap();
+                println!("{b:?} -> {new_position:?}");
                 positions.insert(new_position);
                 updated[n_index] = new_position;
             }
