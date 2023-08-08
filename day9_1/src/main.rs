@@ -51,6 +51,9 @@ impl Position {
         let y_distance_abs = y_distance.unsigned_abs();
         let y_distance_norm;
 
+        println!("{other:?}/{self:?}");
+        println!("{x_distance}/{y_distance}");
+
         if x_distance_abs + y_distance_abs > 3 {
             panic!("Distance is too big - check loop")
         }
@@ -136,8 +139,8 @@ impl Rope {
                 }
                 // Tail
                 let new_position = updated[n_index].follow(*updated.get(p_index).unwrap());
-                // let b = *updated.get(p_index).unwrap();
-                // println!("{b:?} -> {new_position:?}");
+                let b = *updated.get(p_index).unwrap();
+                println!("{b:?} -> {new_position:?}");
                 if n_index == self.elements.len() - 1 {
                     positions.insert(new_position);
                 }
@@ -180,6 +183,7 @@ fn main() {
 
     for movement in data {
         rope.resolve_movement(movement, &mut positions);
+        println!("{rope:?}")
     }
 
     let result = positions.len();
