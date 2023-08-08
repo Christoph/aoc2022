@@ -51,7 +51,6 @@ impl Position {
         let y_distance_abs = y_distance.unsigned_abs();
         let y_distance_norm;
 
-        println!("{self:?}|{other:?}");
         if x_distance_abs + y_distance_abs > 3 {
             panic!("Distance is too big - check loop")
         }
@@ -86,24 +85,21 @@ impl Position {
                 y: self.y + y_distance_norm,
             }
         } else if x_distance_abs + y_distance_abs == 3 {
-            let mut y_distance_diag = y_distance_norm;
-            let mut x_distance_diag = x_distance_norm;
+            let y_distance_diag;
+            let x_distance_diag;
 
-            if x_distance_abs > 1 {
-                if y_distance.is_negative() {
-                    y_distance_diag -= 1;
-                } else {
-                    y_distance_diag += 1;
-                }
+            if y_distance.is_negative() {
+                y_distance_diag = -1;
+            } else {
+                y_distance_diag = 1;
             }
 
-            if x_distance_abs > 1 {
-                if x_distance.is_negative() {
-                    x_distance_diag -= 1;
-                } else {
-                    x_distance_diag += 1;
-                }
+            if x_distance.is_negative() {
+                x_distance_diag = -1;
+            } else {
+                x_distance_diag = 1;
             }
+
             // dialognal movement
             Position {
                 x: self.x + x_distance_diag,
@@ -140,13 +136,15 @@ impl Rope {
                 }
                 // Tail
                 let new_position = updated[n_index].follow(*updated.get(p_index).unwrap());
-                let b = *updated.get(p_index).unwrap();
-                println!("{b:?} -> {new_position:?}");
-                positions.insert(new_position);
+                // let b = *updated.get(p_index).unwrap();
+                // println!("{b:?} -> {new_position:?}");
+                if n_index == self.elements.len() - 1 {
+                    positions.insert(new_position);
+                }
+
                 updated[n_index] = new_position;
             }
         }
-        println!("{updated:?}");
         self.elements = updated;
     }
 }
@@ -166,7 +164,18 @@ fn main() {
     let mut positions = HashSet::new();
 
     let mut rope = Rope {
-        elements: vec![Position { x: 0, y: 0 }, Position { x: 0, y: 0 }],
+        elements: vec![
+            Position { x: 0, y: 0 },
+            Position { x: 0, y: 0 },
+            Position { x: 0, y: 0 },
+            Position { x: 0, y: 0 },
+            Position { x: 0, y: 0 },
+            Position { x: 0, y: 0 },
+            Position { x: 0, y: 0 },
+            Position { x: 0, y: 0 },
+            Position { x: 0, y: 0 },
+            Position { x: 0, y: 0 },
+        ],
     };
 
     for movement in data {
