@@ -54,7 +54,7 @@ impl Position {
         println!("{other:?}/{self:?}");
         println!("{x_distance}/{y_distance}");
 
-        if x_distance_abs + y_distance_abs > 3 {
+        if x_distance_abs + y_distance_abs > 4 {
             panic!("Distance is too big - check loop")
         }
 
@@ -87,7 +87,7 @@ impl Position {
                 x: self.x,
                 y: self.y + y_distance_norm,
             }
-        } else if x_distance_abs + y_distance_abs == 3 {
+        } else if x_distance_abs + y_distance_abs > 2 {
             let y_distance_diag;
             let x_distance_diag;
 
@@ -183,7 +183,6 @@ fn main() {
 
     for movement in data {
         rope.resolve_movement(movement, &mut positions);
-        println!("{rope:?}")
     }
 
     let result = positions.len();
