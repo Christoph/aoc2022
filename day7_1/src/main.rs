@@ -100,6 +100,8 @@ fn main() {
         children: Vec::default(),
     }];
 
+    let currentItem = fs.pop().unwrap();
+
     for d in data {
         match d {
             Line::Command(command) => match command {
@@ -128,6 +130,7 @@ fn main() {
                         size,
                         children: Vec::default(),
                     };
+                    currentItem.children.push(item);
                     fs.last_mut().unwrap().children.push(item);
                 }
             },
