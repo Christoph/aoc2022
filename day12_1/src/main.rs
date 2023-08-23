@@ -12,41 +12,43 @@ struct SearchRay {
 fn main() {
     let mut positions: HashMap<(usize, usize), usize> = HashMap::default();
     let mut touched_positions: HashSet<(usize, usize)> = HashSet::default();
-    let mut letterMapper: HashMap<char, usize> = (b'a'..=b'z')
+    let mut letter_mapper: HashMap<char, usize> = (b'a'..=b'z')
         .enumerate()
         .map(|(i, c)| (c as char, i + 1))
         .collect();
-    letterMapper.insert('S', 0);
-    letterMapper.insert('E', 27);
-    let mut start_position = (0, 0);
+    letter_mapper.insert('S', 0);
+    letter_mapper.insert('E', 27);
+    let mut start_positions: Vec<(usize, usize)> = Vec::new();
     let mut end_position = (0, 0);
     let mut search_rays: Vec<SearchRay> = Vec::new();
     let max_elevation = 1;
+    let start_characters = ['S', 'a'];
 
     include_str!("input.txt")
         .lines()
         .enumerate()
         .for_each(|(line_index, line)| {
             line.chars().enumerate().for_each(|(col_index, character)| {
-                if character == 'S' {
-                    start_position = (col_index, line_index);
-                };
+                if start_characters.contains(&character) {
+                    start_positions.push((col_index, line_index));
+                }
                 if character == 'E' {
                     end_position = (col_index, line_index);
                 };
                 positions.insert(
                     (col_index, line_index),
-                    *letterMapper.get(&character).unwrap_or(&usize::MAX),
+                    *letter_mapper.get(&character).unwrap_or(&usize::MAX),
                 );
             })
         });
 
-    println!("Start position: {start_position:?}");
-    search_rays.push(SearchRay {
-        current: start_position,
-        steps: 0,
-    });
-    touched_positions.insert(start_position);
+    for start_position in start_positions {
+        search_rays.push(SearchRay {
+            current: start_position,
+            steps: 0,
+        });
+        touched_positions.insert(start_position);
+    }
 
     while !search_rays.is_empty() {
         let mut temp: Vec<SearchRay> = Vec::new();
@@ -111,7 +113,6 @@ fn main() {
             }
         }
 
-        // println!("{temp:?}{touched_positions:?}");
         search_rays.append(&mut temp)
     }
 }
