@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use nom::{
     branch::alt,
     bytes::{
@@ -55,12 +57,13 @@ fn parse_line(line: &str) -> IResult<&str, Valve> {
 }
 
 fn main() {
-    let valves: Vec<Valve> = include_str!("input.txt")
+    let valves: HashMap<String, Valve> = include_str!("input.txt")
         .lines()
         .map(|line| {
             let (_, valve) = parse_line(line).unwrap();
-            valve
+            (valve.name.clone(), valve)
         })
         .collect();
-    println!("{valves:?}")
+    let mut time = 30;
+    let mut pressure = 0;
 }
