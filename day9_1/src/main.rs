@@ -167,7 +167,6 @@ fn main() {
     let mut positions = HashSet::new();
 
     let mut rope = Rope {
-        elements: vec![
             Position { x: 0, y: 0 },
             Position { x: 0, y: 0 },
             Position { x: 0, y: 0 },
