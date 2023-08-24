@@ -74,7 +74,7 @@ fn main() {
                     "Best move from {} is {} with value {}",
                     valve.name, neighbor.name, neighbor.value
                 );
-                time -= neighbor.distance + 1;
+                time -= neighbor.distance;
                 pressure += neighbor.value;
                 current_valve = neighbor.name;
                 active_valves.insert(current_valve.clone());
