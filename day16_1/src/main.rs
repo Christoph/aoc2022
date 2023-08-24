@@ -8,12 +8,8 @@ use nom::{
 };
 
 impl Neighbor {
-    fn value(&mut self, remaining_time: usize, open_valves: &HashSet<String>) {
-        if open_valves.contains(&self.name) {
-            self.value = 0;
-        } else {
-            self.value = (remaining_time - self.distance) * self.rate;
-        }
+    fn value(&self, remaining_time: usize) -> usize {
+        (remaining_time - self.distance) * self.rate
     }
 }
 
@@ -52,6 +48,8 @@ fn main() {
         .iter_mut()
         .for_each(|ele| ele.1.detect_neighbors(&lookup_map));
 
+    let lookup_map = valves.clone();
+
     // println!("{valves:?}");
 
     let mut time = 30;
@@ -64,7 +62,7 @@ fn main() {
         let valve = valves
             .get_mut(&current_valve)
             .expect("Valve should exist.{current_value} {valves:?}");
-        let best_move = valve.best_move(time, &active_valves);
+        let best_move = valve.best_move(time, &active_valves, &lookup_map);
 
         // Execute move + 1 for activating if a best move exists
         // Stop the loop if no best move exists
@@ -75,7 +73,7 @@ fn main() {
                     valve.name, neighbor.name, neighbor.value
                 );
                 time -= neighbor.distance;
-                pressure += neighbor.value;
+                pressure += neighbor.rate * time;
                 current_valve = neighbor.name;
                 active_valves.insert(current_valve.clone());
             }
@@ -143,13 +141,20 @@ impl Valve {
         &mut self,
         remaining_time: usize,
         open_valves: &HashSet<String>,
+        lookup_map: &HashMap<String, Valve>,
     ) -> Option<Neighbor> {
+        let neighborhood_average_value =
+            self.neighbor_average_value(remaining_time, lookup_map, open_valves);
+        // println!("average value: {}", neighborhood_average_value);
+        // println!("{self:?}");
         let winner = self
             .neighbors
             .iter_mut()
-            .filter(|n| remaining_time.checked_sub(n.distance).is_some())
+            .filter(|n| {
+                !open_valves.contains(&n.name) && remaining_time.checked_sub(n.distance).is_some()
+            })
             .map(|n| {
-                n.value(remaining_time, open_valves);
+                n.value += n.value(remaining_time) + neighborhood_average_value;
                 n
             })
             .max_by_key(|n| n.value)
@@ -160,6 +165,39 @@ impl Valve {
             None
         } else {
             Some(winner.clone())
+        }
+    }
+
+    fn neighbor_average_value(
+        &mut self,
+        remaining_time: usize,
+        lookup_map: &HashMap<String, Valve>,
+        open_valves: &HashSet<String>,
+    ) -> usize {
+        let values: Vec<usize> = self
+            .neighbors
+            .clone()
+            .iter()
+            .filter(|n| n.distance == 1)
+            .map(|n| {
+                let v = lookup_map.get(&n.name).expect("Should exist");
+                v.neighbors
+                    .iter()
+                    .filter(|n| {
+                        !open_valves.contains(&n.name)
+                            && remaining_time.checked_sub(n.distance).is_some()
+                    })
+                    .map(|other| other.value(remaining_time))
+                    .sum::<usize>()
+                    / v.neighbors.len()
+            })
+            .collect();
+
+        let length = values.len();
+        if length > 0 {
+            values.iter().sum::<usize>() / length
+        } else {
+            0
         }
     }
 }
