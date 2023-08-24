@@ -1,16 +1,12 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use nom::{
     branch::alt,
-    bytes::{
-        complete::take_while1,
-        streaming::{tag, take_until1},
-    },
+    bytes::{complete::take_while1, streaming::tag},
     character::complete::digit1,
     combinator::map,
-    multi::separated_list1,
     sequence::preceded,
-    Finish, IResult,
+    IResult,
 };
 
 #[derive(Debug)]
@@ -18,6 +14,43 @@ struct Valve {
     rate: usize,
     name: String,
     tunnels: Vec<String>,
+    neighbors: Vec<Neighbor>,
+}
+
+impl Valve {
+    fn detect_neighbors(&mut self) {}
+
+    fn best_move(&mut self, remaining_time: usize, open_valves: &HashSet<String>) -> Neighbor {
+        let winner = self
+            .neighbors
+            .iter_mut()
+            .map(|n| {
+                n.value(remaining_time, open_valves);
+                n
+            })
+            .max_by_key(|n| n.value)
+            .expect("No neighbor");
+
+        winner.clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Neighbor {
+    name: String,
+    rate: usize,
+    distance: usize,
+    value: usize,
+}
+
+impl Neighbor {
+    fn value(&mut self, remaining_time: usize, open_valves: &HashSet<String>) {
+        if open_valves.contains(&self.name) {
+            self.value = 0;
+        } else {
+            self.value = (remaining_time - self.distance) * self.rate;
+        }
+    }
 }
 
 fn parse_rate(line: &str) -> IResult<&str, usize> {
@@ -52,6 +85,7 @@ fn parse_line(line: &str) -> IResult<&str, Valve> {
             name,
             rate,
             tunnels: line.split(", ").map(|v| v.to_string()).collect(),
+            neighbors: Vec::new(),
         },
     ))
 }
@@ -66,4 +100,9 @@ fn main() {
         .collect();
     let mut time = 30;
     let mut pressure = 0;
+
+    // Get distances from a sttart point to all other points
+    // Multiply the remaining timesteps (time - distance) with the pressure for each point
+    // 1st step value
+    // do this recursivley until time is out or all are open and sum all
 }
