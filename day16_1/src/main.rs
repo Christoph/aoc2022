@@ -2,10 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use nom::{
     branch::alt,
-    bytes::{complete::take_while1, streaming::tag},
-    character::complete::digit1,
-    combinator::map,
-    sequence::preceded,
+    bytes::streaming::tag,
+    character::{complete::digit1, streaming::alpha1},
     IResult,
 };
 
@@ -19,27 +17,11 @@ impl Neighbor {
     }
 }
 
-fn parse_rate(line: &str) -> IResult<&str, usize> {
-    map(preceded(tag("rate="), digit1), |value: &str| {
-        value.parse().expect("Not a number")
-    })(line)
-}
-
-fn parse_valve(line: &str) -> IResult<&str, String> {
-    map(preceded(tag("Valve "), parse_name), |v| v)(line)
-}
-
-fn parse_name(line: &str) -> IResult<&str, String> {
-    map(
-        take_while1(|c: char| "ABCDEFGHIJKLMNOPQRSTUVWXYZ".contains(c)),
-        Into::into,
-    )(line)
-}
-
 fn parse_line(line: &str) -> IResult<&str, Valve> {
-    let (line, name) = parse_valve(line)?;
-    let (line, _) = tag(" has flow ")(line)?;
-    let (line, rate) = parse_rate(line)?;
+    let (line, _) = tag("Valve ")(line)?;
+    let (line, name) = alpha1(line)?;
+    let (line, _) = tag(" has flow rate=")(line)?;
+    let (line, rate) = digit1(line)?;
     let (line, _) = alt((
         tag("; tunnels lead to valves "),
         tag("; tunnel leads to valve "),
@@ -48,8 +30,8 @@ fn parse_line(line: &str) -> IResult<&str, Valve> {
     Ok((
         line,
         Valve {
-            name,
-            rate,
+            name: String::from(name),
+            rate: rate.parse().expect("Couldnt parse number"),
             tunnels: line.split(", ").map(|v| v.to_string()).collect(),
             neighbors: Vec::new(),
         },
@@ -64,35 +46,38 @@ fn main() {
             (valve.name.clone(), valve)
         })
         .collect();
+
     // Init distance matrices
-    for mut ele in valves {
-        ele.1.detect_neighbors();
+    for mut ele in valves.clone() {
+        ele.1.detect_neighbors(&valves, 0);
     }
+
+    println!("{valves:?}");
 
     let mut time = 30;
     let mut pressure = 0;
     let mut current_valve = String::from("AA");
     let mut active_valves: HashSet<String> = HashSet::new();
 
-    while time > 0 {
-        // Get best move
-        let valve = valves
-            .get(current_valve)
-            .expect("Valve should exist.{current_value} {valves:?}");
-        let best_move = valve.best_move(time, &active_valves);
+    // while time > 0 {
+    //     // Get best move
+    //     let valve = valves
+    //         .get(current_valve)
+    //         .expect("Valve should exist.{current_value} {valves:?}");
+    //     let best_move = valve.best_move(time, &active_valves);
 
-        // Execute move + 1 for activating if a best move exists
-        // Stop the loop if no best move exists
-        match best_move {
-            Some(neighbor) => {
-                time -= neighbor.distance + 1;
-                pressure += neighbor.value;
-                current_valve = neighbor.name;
-                active_valves.insert(current_valve.clone());
-            }
-            None => time = 0,
-        }
-    }
+    //     // Execute move + 1 for activating if a best move exists
+    //     // Stop the loop if no best move exists
+    //     match best_move {
+    //         Some(neighbor) => {
+    //             time -= neighbor.distance + 1;
+    //             pressure += neighbor.value;
+    //             current_valve = neighbor.name;
+    //             active_valves.insert(current_valve.clone());
+    //         }
+    //         None => time = 0,
+    //     }
+    // }
 
     print!("Released pressure: {pressure}")
 }
@@ -106,7 +91,27 @@ struct Valve {
 }
 
 impl Valve {
-    fn detect_neighbors(&mut self) {}
+    fn detect_neighbors(&mut self, positions: &HashMap<String, Valve>, steps: usize) {
+        let mut visited_valves: HashSet<String> = HashSet::new();
+
+        self.neighbors.push(Neighbor {
+            name: self.name.clone(),
+            rate: self.rate,
+            distance: steps,
+            value: 0,
+        });
+        visited_valves.insert(self.name.clone());
+
+        for mut valve in self
+            .tunnels
+            .iter()
+            .map(|tunnel| positions.get(tunnel).expect("Valve has to exist.").clone())
+        {
+            if !visited_valves.contains(&valve.name) {
+                valve.detect_neighbors(positions, steps + 1)
+            }
+        }
+    }
 
     fn best_move(
         &mut self,
