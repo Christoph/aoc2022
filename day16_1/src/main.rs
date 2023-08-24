@@ -1,12 +1,10 @@
-use std::collections::{HashMap, HashSet};
-
-use itertools::Itertools;
 use nom::{
     branch::alt,
     bytes::streaming::tag,
     character::{complete::digit1, streaming::alpha1},
     IResult,
 };
+use std::collections::{HashMap, HashSet};
 
 fn parse_line(line: &str) -> IResult<&str, Valve> {
     let (line, _) = tag("Valve ")(line)?;
@@ -133,7 +131,6 @@ impl Valve {
                         name: v.name.clone(),
                         rate: v.rate,
                         distance: counter + 1,
-                        value: 0,
                     });
                     visited_valves.insert(v.name.clone());
                 }
@@ -204,5 +201,4 @@ struct Neighbor {
     name: String,
     rate: usize,
     distance: usize,
-    value: usize,
 }
