@@ -9,40 +9,6 @@ use nom::{
     IResult,
 };
 
-#[derive(Debug)]
-struct Valve {
-    rate: usize,
-    name: String,
-    tunnels: Vec<String>,
-    neighbors: Vec<Neighbor>,
-}
-
-impl Valve {
-    fn detect_neighbors(&mut self) {}
-
-    fn best_move(&mut self, remaining_time: usize, open_valves: &HashSet<String>) -> Neighbor {
-        let winner = self
-            .neighbors
-            .iter_mut()
-            .map(|n| {
-                n.value(remaining_time, open_valves);
-                n
-            })
-            .max_by_key(|n| n.value)
-            .expect("No neighbor");
-
-        winner.clone()
-    }
-}
-
-#[derive(Debug, Clone)]
-struct Neighbor {
-    name: String,
-    rate: usize,
-    distance: usize,
-    value: usize,
-}
-
 impl Neighbor {
     fn value(&mut self, remaining_time: usize, open_valves: &HashSet<String>) {
         if open_valves.contains(&self.name) {
@@ -98,11 +64,77 @@ fn main() {
             (valve.name.clone(), valve)
         })
         .collect();
+    // Init distance matrices
+    for mut ele in valves {
+        ele.1.detect_neighbors();
+    }
+
     let mut time = 30;
     let mut pressure = 0;
+    let mut current_valve = String::from("AA");
+    let mut active_valves: HashSet<String> = HashSet::new();
 
-    // Get distances from a sttart point to all other points
-    // Multiply the remaining timesteps (time - distance) with the pressure for each point
-    // 1st step value
-    // do this recursivley until time is out or all are open and sum all
+    while time > 0 {
+        // Get best move
+        let valve = valves
+            .get(current_valve)
+            .expect("Valve should exist.{current_value} {valves:?}");
+        let best_move = valve.best_move(time, &active_valves);
+
+        // Execute move + 1 for activating if a best move exists
+        // Stop the loop if no best move exists
+        match best_move {
+            Some(neighbor) => {
+                time -= neighbor.distance + 1;
+                pressure += neighbor.value;
+                current_valve = neighbor.name;
+                active_valves.insert(current_valve.clone());
+            }
+            None => time = 0,
+        }
+    }
+
+    print!("Released pressure: {pressure}")
+}
+
+#[derive(Debug, Clone)]
+struct Valve {
+    rate: usize,
+    name: String,
+    tunnels: Vec<String>,
+    neighbors: Vec<Neighbor>,
+}
+
+impl Valve {
+    fn detect_neighbors(&mut self) {}
+
+    fn best_move(
+        &mut self,
+        remaining_time: usize,
+        open_valves: &HashSet<String>,
+    ) -> Option<Neighbor> {
+        let winner = self
+            .neighbors
+            .iter_mut()
+            .map(|n| {
+                n.value(remaining_time, open_valves);
+                n
+            })
+            .max_by_key(|n| n.value)
+            .expect("No neighbor");
+
+        if winner.value == 0 {
+            None
+        } else {
+            Some(winner.clone())
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Neighbor {
+    name: String,
+    rate: usize,
+    distance: usize,
+    value: usize,
 }
