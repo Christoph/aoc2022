@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    f32::consts::E,
-};
+use std::collections::{HashMap, HashSet};
 
 use nom::{
     branch::alt,
@@ -73,7 +70,10 @@ fn main() {
         // Stop the loop if no best move exists
         match best_move {
             Some(neighbor) => {
-                // println!("Best move from {valve:?} is {neighbor:?}");
+                println!(
+                    "Best move from {} is {} with value {}",
+                    valve.name, neighbor.name, neighbor.value
+                );
                 time -= neighbor.distance + 1;
                 pressure += neighbor.value;
                 current_valve = neighbor.name;
@@ -104,32 +104,34 @@ impl Valve {
         temp.push(self);
 
         while !temp.is_empty() {
-            let v: &Valve = temp.pop().expect("Shouldnt happen");
             let mut next_valves: Vec<&Valve> = Vec::new();
+            for _ in 0..temp.len() {
+                let v: &Valve = temp.pop().expect("Shouldnt happen");
 
-            // Check if it is a new location
-            if !visited_valves.contains(&v.name) {
-                neighbors.push(Neighbor {
-                    name: v.name.clone(),
-                    rate: v.rate,
-                    distance: counter,
-                    value: 0,
-                });
-                visited_valves.insert(v.name.clone());
-            }
+                // Check if it is a new location
+                if !visited_valves.contains(&v.name) {
+                    neighbors.push(Neighbor {
+                        name: v.name.clone(),
+                        rate: v.rate,
+                        distance: counter + 1,
+                        value: 0,
+                    });
+                    visited_valves.insert(v.name.clone());
+                }
 
-            // look for unknown neighbors
-            for valve in v
-                .tunnels
-                .iter()
-                .map(|tunnel| positions.get(tunnel).expect("Valve has to exist."))
-            {
-                if !visited_valves.contains(&valve.name) {
-                    next_valves.push(valve);
+                // look for unknown neighbors
+                for valve in v
+                    .tunnels
+                    .iter()
+                    .map(|tunnel| positions.get(tunnel).expect("Valve has to exist."))
+                {
+                    if !visited_valves.contains(&valve.name) {
+                        next_valves.push(valve);
+                    }
                 }
             }
 
-            // Increase distance for net pass
+            // Increase distance for next pass
             counter += 1;
             temp.append(&mut next_valves);
         }
@@ -153,6 +155,7 @@ impl Valve {
             .max_by_key(|n| n.value)
             .expect("No neighbor");
 
+        println!("winner: {winner:?}");
         if winner.value == 0 {
             None
         } else {
