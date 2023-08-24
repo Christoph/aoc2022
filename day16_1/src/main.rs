@@ -55,32 +55,33 @@ fn main() {
         .iter_mut()
         .for_each(|ele| ele.1.detect_neighbors(&lookup_map));
 
-    println!("{valves:?}");
+    // println!("{valves:?}");
 
     let mut time = 30;
     let mut pressure = 0;
     let mut current_valve = String::from("AA");
     let mut active_valves: HashSet<String> = HashSet::new();
 
-    // while time > 0 {
-    //     // Get best move
-    //     let valve = valves
-    //         .get(current_valve)
-    //         .expect("Valve should exist.{current_value} {valves:?}");
-    //     let best_move = valve.best_move(time, &active_valves);
+    while time > 0 {
+        // Get best move
+        let valve = valves
+            .get_mut(&current_valve)
+            .expect("Valve should exist.{current_value} {valves:?}");
+        let best_move = valve.best_move(time, &active_valves);
 
-    //     // Execute move + 1 for activating if a best move exists
-    //     // Stop the loop if no best move exists
-    //     match best_move {
-    //         Some(neighbor) => {
-    //             time -= neighbor.distance + 1;
-    //             pressure += neighbor.value;
-    //             current_valve = neighbor.name;
-    //             active_valves.insert(current_valve.clone());
-    //         }
-    //         None => time = 0,
-    //     }
-    // }
+        // Execute move + 1 for activating if a best move exists
+        // Stop the loop if no best move exists
+        match best_move {
+            Some(neighbor) => {
+                // println!("Best move from {valve:?} is {neighbor:?}");
+                time -= neighbor.distance + 1;
+                pressure += neighbor.value;
+                current_valve = neighbor.name;
+                active_valves.insert(current_valve.clone());
+            }
+            None => time = 0,
+        }
+    }
 
     print!("Released pressure: {pressure}")
 }
@@ -133,7 +134,7 @@ impl Valve {
             temp.append(&mut next_valves);
         }
 
-        self.neighbors = neighbors.clone();
+        self.neighbors = neighbors;
     }
 
     fn best_move(
@@ -144,6 +145,7 @@ impl Valve {
         let winner = self
             .neighbors
             .iter_mut()
+            .filter(|n| remaining_time.checked_sub(n.distance).is_some())
             .map(|n| {
                 n.value(remaining_time, open_valves);
                 n
