@@ -8,12 +8,6 @@ use nom::{
     IResult,
 };
 
-impl Neighbor {
-    fn value(&self, remaining_time: usize) -> usize {
-        (remaining_time - self.distance) * self.rate
-    }
-}
-
 fn parse_line(line: &str) -> IResult<&str, Valve> {
     let (line, _) = tag("Valve ")(line)?;
     let (line, name) = alpha1(line)?;
@@ -51,8 +45,6 @@ fn main() {
 
     let lookup_map = valves.clone();
 
-    // println!("{valves:?}");
-
     let mut time: usize = 30;
     let mut pressure = 0;
     let mut current_valve = String::from("AA");
@@ -64,8 +56,7 @@ fn main() {
     });
 
     while time > 0 {
-        println!("Time: {time}{:?}", active_valves);
-        // Get best move
+        println!("Time: {time}");
         let valve = valves
             .get_mut(&current_valve)
             .expect("Valve should exist.{current_value} {valves:?}");
@@ -93,9 +84,6 @@ fn main() {
             })
             .max_by_key(|winner| winner.1)
             .map(|(n, _)| n);
-
-        // Try 1 - not working
-        // let best_move = valve.best_move(time, &active_valves, &lookup_map);
 
         match best_move {
             Some(neighbor) => {
@@ -191,85 +179,20 @@ impl Valve {
             .map(|n| (n, lookup_map.get(&n.name).expect("Should exist")))
             .collect();
 
-        // if !valve_values.is_empty() {
-        //     valve_values
-        //         .iter()
-        //         .filter(|(n, _)| remaining_time.checked_sub(n.distance).is_some())
-        //         .map(|(n, v)| {
-        //             value
-        //                 + v.highest_expected_value(
-        //                     remaining_time - n.distance,
-        //                     open_valves.clone(),
-        //                     lookup_map,
-        //                 )
-        //         })
-        //         .sum::<usize>()
-        //         / valve_values.len()
-        // } else {
-        //     0
-        // }
-        value
-    }
-
-    fn best_move(
-        &mut self,
-        remaining_time: usize,
-        open_valves: &HashSet<String>,
-        lookup_map: &HashMap<String, Valve>,
-    ) -> Option<Neighbor> {
-        let neighborhood_average_value =
-            self.neighbor_average_value(remaining_time, lookup_map, open_valves);
-        // println!("average value: {}", neighborhood_average_value);
-        // println!("{self:?}");
-        let winner = self
-            .neighbors
-            .iter_mut()
-            .filter(|n| {
-                !open_valves.contains(&n.name) && remaining_time.checked_sub(n.distance).is_some()
-            })
-            .map(|n| {
-                n.value += n.value(remaining_time) + neighborhood_average_value;
-                n
-            })
-            .max_by_key(|n| n.value)
-            .expect("No neighbor");
-
-        println!("winner: {winner:?}");
-        if winner.value == 0 {
-            None
-        } else {
-            Some(winner.clone())
-        }
-    }
-
-    fn neighbor_average_value(
-        &mut self,
-        remaining_time: usize,
-        lookup_map: &HashMap<String, Valve>,
-        open_valves: &HashSet<String>,
-    ) -> usize {
-        let values: Vec<usize> = self
-            .neighbors
-            .clone()
-            .iter()
-            .filter(|n| n.distance < 2)
-            .map(|n| {
-                let v = lookup_map.get(&n.name).expect("Should exist");
-                v.neighbors
-                    .iter()
-                    .filter(|n| {
-                        !open_valves.contains(&n.name)
-                            && remaining_time.checked_sub(n.distance).is_some()
-                    })
-                    .map(|other| other.value(remaining_time))
-                    .sum::<usize>()
-                    / v.neighbors.len()
-            })
-            .collect();
-
-        let length = values.len();
-        if length > 0 {
-            values.iter().sum::<usize>() / length
+        if !valve_values.is_empty() {
+            valve_values
+                .iter()
+                .filter(|(n, _)| remaining_time.checked_sub(n.distance).is_some())
+                .map(|(n, v)| {
+                    value
+                        + v.highest_expected_value(
+                            remaining_time - n.distance,
+                            open_valves.clone(),
+                            lookup_map,
+                        )
+                })
+                .max()
+                .unwrap()
         } else {
             0
         }
