@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    f32::consts::E,
+};
 
 use nom::{
     branch::alt,
@@ -39,18 +42,18 @@ fn parse_line(line: &str) -> IResult<&str, Valve> {
 }
 
 fn main() {
-    let valves: HashMap<String, Valve> = include_str!("input.txt")
+    let mut valves: HashMap<String, Valve> = include_str!("input.txt")
         .lines()
         .map(|line| {
             let (_, valve) = parse_line(line).unwrap();
             (valve.name.clone(), valve)
         })
         .collect();
+    let lookup_map = valves.clone();
 
-    // Init distance matrices
-    for mut ele in valves.clone() {
-        ele.1.detect_neighbors(&valves, 0);
-    }
+    valves
+        .iter_mut()
+        .for_each(|ele| ele.1.detect_neighbors(&lookup_map));
 
     println!("{valves:?}");
 
@@ -91,26 +94,46 @@ struct Valve {
 }
 
 impl Valve {
-    fn detect_neighbors(&mut self, positions: &HashMap<String, Valve>, steps: usize) {
+    fn detect_neighbors(&mut self, positions: &HashMap<String, Valve>) {
         let mut visited_valves: HashSet<String> = HashSet::new();
+        let mut neighbors: Vec<Neighbor> = vec![];
+        let mut temp: Vec<&Valve> = Vec::new();
+        let mut counter = 0;
 
-        self.neighbors.push(Neighbor {
-            name: self.name.clone(),
-            rate: self.rate,
-            distance: steps,
-            value: 0,
-        });
-        visited_valves.insert(self.name.clone());
+        temp.push(self);
 
-        for mut valve in self
-            .tunnels
-            .iter()
-            .map(|tunnel| positions.get(tunnel).expect("Valve has to exist.").clone())
-        {
-            if !visited_valves.contains(&valve.name) {
-                valve.detect_neighbors(positions, steps + 1)
+        while !temp.is_empty() {
+            let v: &Valve = temp.pop().expect("Shouldnt happen");
+            let mut next_valves: Vec<&Valve> = Vec::new();
+
+            // Check if it is a new location
+            if !visited_valves.contains(&v.name) {
+                neighbors.push(Neighbor {
+                    name: v.name.clone(),
+                    rate: v.rate,
+                    distance: counter,
+                    value: 0,
+                });
+                visited_valves.insert(v.name.clone());
             }
+
+            // look for unknown neighbors
+            for valve in v
+                .tunnels
+                .iter()
+                .map(|tunnel| positions.get(tunnel).expect("Valve has to exist."))
+            {
+                if !visited_valves.contains(&valve.name) {
+                    next_valves.push(valve);
+                }
+            }
+
+            // Increase distance for net pass
+            counter += 1;
+            temp.append(&mut next_valves);
         }
+
+        self.neighbors = neighbors.clone();
     }
 
     fn best_move(
