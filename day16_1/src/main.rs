@@ -103,7 +103,7 @@ fn main() {
         }
     }
     let elapsed = start_time.elapsed();
-    print!("Released pressure: {pressure} in {elapsed:?}")
+    print!("AOC day16 part1: Released pressure: {pressure} in {elapsed:?}")
 }
 
 #[derive(Debug, Clone)]
@@ -168,12 +168,12 @@ impl Valve {
             return 0;
         }
 
-        let max_distance = self
-            .neighbors
-            .iter()
-            .filter(|n| !open_valves.contains(&n.name) && remaining_time >= n.distance)
-            .max_by_key(|n| n.distance / n.rate)
-            .unwrap();
+        // let max_distance = self
+        //     .neighbors
+        //     .iter()
+        //     .filter(|n| !open_valves.contains(&n.name) && remaining_time >= n.distance)
+        //     .max_by_key(|n| n.distance / n.rate)
+        //     .unwrap();
 
         // println!("{max_distance:?}");
 
@@ -182,9 +182,7 @@ impl Valve {
         self.neighbors
             .iter()
             .filter(|n| {
-                !open_valves.contains(&n.name)
-                    && remaining_time >= n.distance
-                    && n.distance < max_distance.distance
+                !open_valves.contains(&n.name) && remaining_time >= n.distance && n.distance < 5
             })
             .map(|n| (n, lookup_map.get(&n.name).expect("Should exist")))
             .map(|(n, v)| {
