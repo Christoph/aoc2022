@@ -76,6 +76,7 @@ fn main() {
                             time - n.distance,
                             active_valves.clone(),
                             &lookup_map,
+                            valves.clone().len(),
                         ),
                 )
             })
@@ -163,26 +164,20 @@ impl Valve {
         remaining_time: usize,
         mut open_valves: HashSet<String>,
         lookup_map: &HashMap<String, Valve>,
+        max_distance: usize,
     ) -> usize {
         if remaining_time < 1 || open_valves.len() == lookup_map.len() {
             return 0;
         }
-
-        // let max_distance = self
-        //     .neighbors
-        //     .iter()
-        //     .filter(|n| !open_valves.contains(&n.name) && remaining_time >= n.distance)
-        //     .max_by_key(|n| n.distance / n.rate)
-        //     .unwrap();
-
-        // println!("{max_distance:?}");
 
         open_valves.insert(self.name.clone());
         let value = self.rate * remaining_time;
         self.neighbors
             .iter()
             .filter(|n| {
-                !open_valves.contains(&n.name) && remaining_time >= n.distance && n.distance < 5
+                !open_valves.contains(&n.name)
+                    && remaining_time >= n.distance
+                    && n.distance < max_distance
             })
             .map(|n| (n, lookup_map.get(&n.name).expect("Should exist")))
             .map(|(n, v)| {
@@ -191,6 +186,7 @@ impl Valve {
                         remaining_time - n.distance,
                         open_valves.clone(),
                         lookup_map,
+                        max_distance - 1,
                     )
             })
             .max()
