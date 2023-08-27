@@ -59,6 +59,10 @@ fn main() {
         active_valves.insert(v.0.to_string());
     });
 
+    valves
+        .iter_mut()
+        .for_each(|v| v.1.neighbors.retain(|v| v.rate > 0));
+
     println!("I start from AA");
     while time > 0 {
         println!("Time: {time}");
@@ -81,7 +85,7 @@ fn main() {
                             .get(&n.name)
                             .expect("Should exist")
                             .highest_expected_value(
-                                time - n.distance,
+                                time - (n.distance),
                                 active_valves.clone(),
                                 &lookup_map,
                             ),
@@ -98,10 +102,10 @@ fn main() {
         }
 
         if let Some(ele) = best_move_elefant {
-            working_elefant = ele.distance - 1;
+            working_elefant = ele.distance;
             current_elefant = ele.name.clone();
             active_valves.insert(current_elefant.clone());
-            pressure += ele.rate * (time - working_elefant - 1);
+            pressure += ele.rate * (time - working_elefant);
             println!("Elefant moves to {}", current_elefant);
         }
 
@@ -138,10 +142,10 @@ fn main() {
         }
 
         if let Some(me) = best_move_me {
-            working_me = me.distance - 1;
+            working_me = me.distance;
             current_me = me.name.clone();
             active_valves.insert(current_me.clone());
-            pressure += me.rate * (time - working_me - 1);
+            pressure += me.rate * (time - working_me);
             println!("I move to {}", current_me);
         }
 
@@ -173,12 +177,12 @@ impl Valve {
             for _ in 0..temp.len() {
                 let v: &Valve = temp.pop().expect("Shouldnt happen");
 
-                // Check if it is a new location
+                // Check if it is a new location with a positive rate
                 if !visited_valves.contains(&v.name) {
                     neighbors.push(Neighbor {
                         name: v.name.clone(),
                         rate: v.rate,
-                        distance: counter + 1,
+                        distance: counter,
                     });
                     visited_valves.insert(v.name.clone());
                 }
@@ -218,7 +222,7 @@ impl Valve {
         self.neighbors
             .iter()
             .filter(|n| {
-                !open_valves.contains(&n.name) && remaining_time >= n.distance // && n.distance < 6
+                !open_valves.contains(&n.name) && remaining_time >= n.distance // && n.distance < 7
             })
             .map(|n| (n, lookup_map.get(&n.name).expect("Should exist")))
             .map(|(n, v)| {
@@ -229,6 +233,8 @@ impl Valve {
                         lookup_map,
                     )
             })
+            // .max()
+            // .unwrap_or(0)
             .sum::<usize>()
             / self.neighbors.len()
     }

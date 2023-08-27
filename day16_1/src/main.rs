@@ -186,6 +186,7 @@ impl Valve {
             .filter(|n| {
                 !open_valves.contains(&n.name)
                     && remaining_time >= n.distance
+                    && n.rate > 0
                     && n.distance < max_distance
             })
             .map(|n| (n, lookup_map.get(&n.name).expect("Should exist")))
@@ -200,6 +201,8 @@ impl Valve {
             })
             .max()
             .unwrap_or(0)
+        // .sum::<usize>()
+        // / self.neighbors.len()
     }
 }
 
