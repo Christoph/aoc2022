@@ -46,7 +46,7 @@ fn main() {
 
     let lookup_map = valves.clone();
 
-    let mut time: usize = 30;
+    let mut time: usize = 26;
     let mut pressure = 0;
     let mut current_me = String::from("AA");
     let mut working_me = 0;
@@ -69,39 +69,40 @@ fn main() {
         let mut best_move_me: Option<&(&Neighbor, usize)> = None;
         let mut best_move_me_alternative: Option<&(&Neighbor, usize)> = None;
 
-        // if working_elefant == 0 {
-        //     let valve = valves
-        //         .get(&current_elefant)
-        //         .expect("Valve should exist.{current_value} {valves:?}");
+        if working_elefant < 1 {
+            let valve = valves
+                .get(&current_elefant)
+                .expect("Valve should exist.{current_value} {valves:?}");
 
-        //     best_moves_elefant = valve
-        //         .neighbors
-        //         .iter()
-        //         .filter(|n| !active_valves.contains(&n.name) && time >= n.distance)
-        //         .map(|n| {
-        //             (
-        //                 n,
-        //                 lookup_map
-        //                     .get(&n.name)
-        //                     .expect("Should exist")
-        //                     .highest_expected_value(
-        //                         time - n.distance,
-        //                         active_valves.clone(),
-        //                         &lookup_map,
-        //                     ),
-        //             )
-        //         })
-        //         .sorted_by_key(|entry| entry.1)
-        //         .rev()
-        //         .collect();
+            best_moves_elefant = valve
+                .neighbors
+                .iter()
+                .filter(|n| !active_valves.contains(&n.name) && time >= n.distance)
+                .map(|n| {
+                    (
+                        n,
+                        lookup_map
+                            .get(&n.name)
+                            .expect("Should exist")
+                            .highest_expected_value(
+                                time - n.distance - 1,
+                                active_valves.clone(),
+                                &lookup_map,
+                            ),
+                    )
+                })
+                .sorted_by_key(|entry| entry.1)
+                .rev()
+                .collect();
 
-        //     best_move_elefant = best_moves_elefant.get(0);
-        //     best_move_elefant_alternative = best_moves_elefant.get(1);
-        // } else {
-        //     working_elefant -= 1;
-        // }
+            // println!("Best moves elefant: {:?}", best_moves_elefant);
+            best_move_elefant = best_moves_elefant.get(0);
+            best_move_elefant_alternative = best_moves_elefant.get(1);
+        } else {
+            working_elefant -= 1;
+        }
 
-        if working_me <= 1 {
+        if working_me < 1 {
             let valve = valves
                 .get(&current_me)
                 .expect("Valve should exist.{current_value} {valves:?}");
@@ -139,58 +140,60 @@ fn main() {
         match (best_move_me, best_move_elefant) {
             (None, None) => (),
             (None, Some(ele)) => {
-                working_elefant = ele.0.distance;
+                working_elefant = ele.0.distance - 1;
                 current_elefant = ele.0.name.clone();
                 active_valves.insert(current_elefant.clone());
-                pressure += ele.0.rate * time;
+                pressure += ele.0.rate * (time - working_elefant - 1);
+                println!("Elefant moves to {}", current_elefant);
             }
             (Some(me), None) => {
-                working_me = me.0.distance;
+                working_me = me.0.distance - 1;
                 current_me = me.0.name.clone();
                 active_valves.insert(current_me.clone());
-                pressure += me.0.rate * time;
-                println!(
-                    "I move to {} based on value {} in {} minutes",
-                    current_me,
-                    me.0.rate * time,
-                    me.0.distance - 1 // -1 because 1 minute is for the activation but its not a distance
-                )
+                pressure += me.0.rate * (time - working_me - 1);
+                println!("I move to {}", current_me);
             }
             (Some(me), Some(ele)) => {
                 if me.0.name == ele.0.name {
                     if me.1 >= ele.1 {
-                        working_me = me.0.distance;
+                        working_me = me.0.distance - 1;
                         current_me = me.0.name.clone();
                         active_valves.insert(current_me.clone());
-                        pressure += me.0.rate * time;
+                        pressure += me.0.rate * (time - working_me - 1);
+                        println!("I move to {}", current_me);
 
                         let ele = best_move_elefant_alternative.unwrap();
-                        working_elefant = ele.0.distance;
+                        working_elefant = ele.0.distance - 1;
                         current_elefant = ele.0.name.clone();
                         active_valves.insert(current_elefant.clone());
-                        pressure += ele.0.rate * time;
+                        pressure += ele.0.rate * (time - working_elefant - 1);
+                        println!("Elefant moves to {}", current_elefant);
                     } else {
                         let me = best_move_me_alternative.unwrap();
-                        working_me = me.0.distance;
+                        working_me = me.0.distance - 1;
                         current_me = me.0.name.clone();
                         active_valves.insert(current_me.clone());
-                        pressure += me.0.rate * time;
+                        pressure += me.0.rate * (time - working_me - 1);
+                        println!("I move to {}", current_me);
 
-                        working_elefant = ele.0.distance;
+                        working_elefant = ele.0.distance - 1;
                         current_elefant = ele.0.name.clone();
                         active_valves.insert(current_elefant.clone());
-                        pressure += ele.0.rate * time;
+                        pressure += ele.0.rate * (time - working_elefant - 1);
+                        println!("Elefant moves to {}", current_elefant);
                     }
                 } else {
-                    working_me = me.0.distance;
+                    working_me = me.0.distance - 1;
                     current_me = me.0.name.clone();
                     active_valves.insert(current_me.clone());
-                    pressure += me.0.rate * time;
+                    pressure += me.0.rate * (time - working_me - 1);
+                    println!("I move to {}", current_me);
 
-                    working_elefant = ele.0.distance;
+                    working_elefant = ele.0.distance - 1;
                     current_elefant = ele.0.name.clone();
                     active_valves.insert(current_elefant.clone());
-                    pressure += ele.0.rate * time;
+                    pressure += ele.0.rate * (time - working_elefant - 1);
+                    println!("Elefant moves to {}", current_elefant);
                 }
             }
         }
@@ -263,22 +266,12 @@ impl Valve {
             return 0;
         }
 
-        let max_distance = self
-            .neighbors
-            .iter()
-            .filter(|n| !open_valves.contains(&n.name) && remaining_time >= n.distance)
-            .max_by_key(|n| n.distance / n.rate)
-            .unwrap();
-
-        // println!("{max_distance:?}");
-
         open_valves.insert(self.name.clone());
         let value = self.rate * remaining_time;
         self.neighbors
             .iter()
             .filter(|n| {
-                !open_valves.contains(&n.name) && remaining_time >= n.distance
-                // && n.distance < 5.max(max_distance.distance)
+                !open_valves.contains(&n.name) && remaining_time >= n.distance // && n.distance < 6
             })
             .map(|n| (n, lookup_map.get(&n.name).expect("Should exist")))
             .map(|(n, v)| {
